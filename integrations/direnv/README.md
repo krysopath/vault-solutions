@@ -8,7 +8,33 @@ hierarchy of resources on your filesystem.
 - this also supports arbitrary code execution (like anything on shell)
 - an integration with vault could access secrets for you
 
-## example
+# problem
+
+lets say we have a certain infrastructure layout with respective files. e.g.:
+```
+iac
+├── dev
+│   ├── .envrc
+│   ├── project-a
+│   │   └── .envrc
+│   └── project-b
+│       └── .envrc
+├── .envrc
+└── ops
+    ├── accounts
+    │   └── .envrc
+    ├── deploy
+    │   └── .envrc
+    └── .envrc
+```
+
+> Note the .envrc in all subdirectories
+
+By setting specific environment variables automatically on descending into
+these specific directories, we can stop caring about micromanagment of shell
+variables according to context.
+
+## execution example
 
 ```
 Last login: Mon Mar 30 17:56:38 2020 from 192.168.121.1
