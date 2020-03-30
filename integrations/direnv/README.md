@@ -96,26 +96,6 @@ direnv: loading .envrc
 direnv: export -PS2
 
 $  export VAULT_TOKEN=s.******************
-$ cat .envrc
-#!/usr/bin/env bash
-
-# setting some import shell variables here
-export VAULT_ADDR=https://vault.internal.3yourmind.com:443
-
-# lastly enrich the session with vault data
-function vaultified() {
-    for leafnode in "$@"; do
-        for values in $(vault kv get $leafnode\
-        |sed -E "1,3d;s,^([A-Z_]+)[[:space:]]+(.*)$,\1=\2,"); do
-            K=$(awk -F= '{ print $1 }' <<<$values)
-            V=$(awk -F= '{ print $2 }' <<<$values)
-            export $K=$V
-        done;
-     done;
-}
-if [ -n $VAULT_TOKEN ]; then
-    vaultified ${VAULT_PATHS}
-fi
 $ export VAULT_PATHS='secret/services/shared/env secret/services/shared/anchore'
 $ echo $VAULT_PATHS
 secret/services/shared/env secret/services/shared/anchore
