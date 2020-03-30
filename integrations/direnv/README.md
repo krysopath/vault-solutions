@@ -1,10 +1,10 @@
 # direnv
 
-direnv is a tool which loads environment variables based based on your present
+`direnv` is a tool which loads environment variables based on your present
 working directory or `$PWD`. As you descend into or ascend back through the
 hierarchy of resources on your filesystem.
 
-- this allows for simple auto provisioning of important values
+- this allows for simple auto provisioning of namespaced values
 - this also supports arbitrary code execution (like anything on shell)
 - an integration with vault could access secrets for you
 
@@ -70,3 +70,14 @@ direnv: export +ANCHORE_CLI_PASS +ANCHORE_CLI_URL +ANCHORE_CLI_USER
 - bring namespaced and automatically provisioned values to your development
 - never forget to load your secrets anymore :)
 - define arbitrary code to run when you descend into its parent directory (:
+
+
+## setup instructions:
+
+0. install direnv (available via apt and yum)
+1. choose a `directory/`
+2. create a file  `directory/.envrc` and open it with an editor
+3. export variables like in a shell script: `export MY_KEY=some-value`, save.
+4. run `direnv allow directory/`
+5. `cd directory/` and see the magic at work
+
