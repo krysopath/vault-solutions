@@ -61,3 +61,12 @@ direnv: export +ANCHORE_CLI_PASS +ANCHORE_CLI_URL +ANCHORE_CLI_USER
 +AWS_SECRET_ACCESS_KEY +CROWDIN_PROJECT_ID +CROWDIN_TOKEN +NPM_TOKEN
 +SONAR_TOKEN +TAXJAR_TOKEN -PS2
 ```
+
+## caveats
+- error messages when you dont reach vault
+- added execution time to `cd /directory/with/vaultified/direnv`
+
+## Benefits
+- bring namespaced and automatically provisioned values to your development
+- never forget to load your secrets anymore :)
+- define arbitrary code to run when you descend into its parent directory (:
