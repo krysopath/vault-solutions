@@ -84,9 +84,7 @@ usage() {
     evaluated by any shell. They contain secrets for the aws-iam-authenticator.
 
     renew: this commands attempts to renew the parent vault token and the lease
-    on the IAM user that is saved in its cubbyhole.
-
-	"
+    on the IAM user that is saved in its cubbyhole." >/dev/stderr
 }
 
 case ${1:-?} in
