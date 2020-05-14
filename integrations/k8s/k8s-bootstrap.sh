@@ -71,8 +71,8 @@ usage() {
     3. vault (to create IAM & store secrets in the cubbyhole)
     4. jq (to parse json in a simple way)
 
-    We fail if we do not find out dependencies with exits 50+N, where N is the
-    dependency in the list above.
+    We fail hard, if we do not find our dependencies and exit with rc 50+N,
+    where N is the index of the dependency in the list above.
 
     initial: This subcommands checks if all dependencies are in place. It also
     fetches the proper KUBECONFIG file.
