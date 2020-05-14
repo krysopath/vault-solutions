@@ -17,11 +17,11 @@ test_binaries() {
 }
 
 fetch_kubeconfig() {
-    echo "+ Creating KUBECONFIG  in '$1'" > /dev/stderr
+	echo "+ Creating KUBECONFIG  in '$1'" >/dev/stderr
 	vault read -format=json "$VAULT_KUBECONFIG" |
 		jq -r .data.data |
 		base64 -d |
-        tee /dev/stderr >"$1"
+		tee /dev/stderr >"$1"
 }
 
 initial_config() {
@@ -31,7 +31,7 @@ initial_config() {
 
 identity() {
 	DATA=$(vault read -format=json "$VAULT_IAM")
-    echo "+ Created IAM lease '$(jq -r .lease_id<<<"$DATA")'" > /dev/stderr
+	echo "+ Created IAM lease '$(jq -r .lease_id <<<"$DATA")'" >/dev/stderr
 	vault write "cubbyhole/iam" \
 		AWS_ACCESS_KEY_ID="$(jq -r '.data.access_key' <<<"$DATA")" \
 		AWS_SECRET_ACCESS_KEY="$(jq -r '.data.secret_key' <<<"$DATA")" \
@@ -47,11 +47,11 @@ emit_env_statements() {
 
 lease_renew() {
 	if [ -n "${VAULT_IAM_LEASE:-}" ]; then
-		vault lease renew "$VAULT_IAM_LEASE" >/dev/null \
-            && echo "+ Renewed the IAM lease."
-	    VAULT_TOKEN="${VAULT_TOKEN:-$(cat ~/.vault-token)}"
-	    vault token renew "$VAULT_TOKEN" &>/dev/null ||
-	    	echo "! Can not renew this vault token." >/dev/stderr
+		vault lease renew "$VAULT_IAM_LEASE" >/dev/null &&
+			echo "+ Renewed the IAM lease."
+		VAULT_TOKEN="${VAULT_TOKEN:-$(cat ~/.vault-token)}"
+		vault token renew "$VAULT_TOKEN" &>/dev/null ||
+			echo "! Can not renew this vault token." >/dev/stderr
 
 	else
 		echo "! Error: run 'eval \$($(basename "$0") env)' first"
