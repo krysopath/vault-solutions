@@ -92,7 +92,6 @@ func emit(v *VaultThinClient) {
 
 func renew(v *VaultThinClient) {
 	lease := os.Getenv("VAULT_IAM_LEASE")
-	fmt.Fprintf(os.Stderr, lease)
 	v.Renew(lease)
 }
 
