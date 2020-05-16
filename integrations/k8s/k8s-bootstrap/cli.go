@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strings"
 )
 
@@ -20,19 +21,21 @@ func getUser() *user.User {
 
 var User = getUser()
 
-var ConfigFilePath = fmt.Sprintf(
-	"%s/.secrets.json",
-	User.HomeDir)
+var ConfigFilePath = filepath.Join(
+	User.HomeDir, ".secrets.json",
+)
 
 type Config struct {
-	SelfRenew    bool                      `json:"self_renew"`
-	EmittedPaths *[]string                 `json:"emitted_paths"`
-	Cubby        *[]map[string]interface{} `json:"cubby"`
-	Files        map[string]interface{}    `json:"files"`
+	SelfRenew      bool                      `json:"self_renew"`
+	EmittedPaths   *[]string                 `json:"emitted_paths"`
+	EmitterFString string                    `json:"export_fstring"`
+	Cubby          *[]map[string]interface{} `json:"cubby"`
+	Files          map[string]interface{}    `json:"files"`
 }
 
 func (c *Config) LoadFromFile(fp string) Config {
 	var cfg Config
+	fmt.Printf("%+v", fp)
 	if _, err := os.Stat(fp); err == nil {
 		content, err := ioutil.ReadFile(fp)
 		if err != nil {
@@ -52,7 +55,7 @@ func (c *Config) String() string {
 }
 
 // EmitEnv emits a string that can be evaluated by any shell
-func EmitEnv(v *VaultThinClient) string {
+func EmitEnv(v *VaultThinClient, exportStr string) string {
 	Emitted := make(map[string]interface{})
 
 	for _, p := range *v.Config.EmittedPaths {
@@ -63,7 +66,7 @@ func EmitEnv(v *VaultThinClient) string {
 
 	var emit string = ""
 	for key, value := range Emitted {
-		emit = fmt.Sprintf("%s\nexport %s=%s", emit, key, value)
+		emit = fmt.Sprintf(exportStr, emit, key, value)
 	}
 	return strings.TrimSpace(emit)
 }
@@ -79,7 +82,12 @@ func newIdentity(v *VaultThinClient) {
 
 func initial(v *VaultThinClient) {
 	for _, sourcePath := range v.Config.Files {
-		fmt.Fprintf(os.Stdout, *v.EmitFileAction(sourcePath.(string)))
+		fmt.Fprintln(
+			os.Stdout,
+			strings.TrimSpace(
+				*v.EmitFileAction(sourcePath.(string)),
+			),
+		)
 	}
 }
 
@@ -87,7 +95,7 @@ func emit(v *VaultThinClient) {
 	if v.Config.SelfRenew {
 		go renew(v)
 	}
-	fmt.Fprintln(os.Stdout, EmitEnv(v))
+	fmt.Fprintln(os.Stdout, EmitEnv(v, v.Config.EmitterFString))
 }
 
 func renew(v *VaultThinClient) {
@@ -107,6 +115,8 @@ func main() {
 	cfg := &Config{}
 	cfg.LoadFromFile(ConfigFilePath)
 	v := NewClient(cfg)
+
+	fmt.Printf("%+v\n", cfg)
 
 	if len(os.Args) >= 2 {
 		switch os.Args[1] {
