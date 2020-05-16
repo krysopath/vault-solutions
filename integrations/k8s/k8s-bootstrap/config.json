@@ -1,0 +1,16 @@
+{
+    "self_renew": true,
+    "files": {
+        "KUBECONFIG": "secret/services/k8s/tf-stage/kubeconfig_developer"
+    },
+    "cubby": [
+        {
+            "src": "dev/aws/creds/aws-developer",
+            "dest": "cubbyhole/iam/aws-developer"
+        }
+    ],
+    "emitted_paths": [
+        "secret/services/shared/env",
+        "cubbyhole/iam/aws-developer"
+    ]
+}
