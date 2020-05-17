@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,6 +10,8 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 func getUser() *user.User {
@@ -19,43 +22,76 @@ func getUser() *user.User {
 	return usr
 }
 
+// User holds information we need in even in simple scenarios.
 var User = getUser()
 
+// ConfigFilePath holds a path to search for confguration instructions
 var ConfigFilePath = filepath.Join(
-	User.HomeDir, ".secrets.json",
+	User.HomeDir, ".secrets.yaml",
 )
 
+const DefaultConfigYml string = `---
+renew: true
+emit:
+- secret/services/shared/env
+- cubbyhole/iam/aws-developer
+fstring: |-
+  %s
+  export %s=%s
+cubby:
+- dest: cubbyhole/iam/aws-developer
+  src: dev/aws/creds/aws-developer
+files:
+  KUBECONFIG: secret/services/k8s/tf-stage/kubeconfig_developer
+`
+
+// Config describes the settings of what the VaultThinClient will do
 type Config struct {
-	SelfRenew      bool                      `json:"self_renew"`
-	EmittedPaths   *[]string                 `json:"emitted_paths"`
-	EmitterFString string                    `json:"export_fstring"`
-	Cubby          *[]map[string]interface{} `json:"cubby"`
-	Files          map[string]interface{}    `json:"files"`
+	SelfRenew      bool                      `json:"renew" yaml:"renew"`
+	EmittedPaths   *[]string                 `json:"emit" yaml:"emit"`
+	EmitterFString string                    `json:"fstring" yaml:"fstring"`
+	Cubby          *[]map[string]interface{} `json:"cubby" yaml:"cubby"`
+	Files          map[string]interface{}    `json:"files" yaml:"files"`
 }
 
+// LoadFromFile loads a config from file and returns it as struct as well.
 func (c *Config) LoadFromFile(fp string) Config {
-	var cfg Config
-	fmt.Printf("%+v", fp)
 	if _, err := os.Stat(fp); err == nil {
 		content, err := ioutil.ReadFile(fp)
 		if err != nil {
 			panic(err)
 		}
-		json.Unmarshal(content, &c)
+
+		extension := filepath.Ext(fp)
+		switch extension {
+		case ".yaml":
+			yaml.Unmarshal(content, &c)
+
+		case ".json":
+			json.Unmarshal(content, &c)
+
+		}
+	} else {
+		err := yaml.Unmarshal([]byte(DefaultConfigYml), &c)
+		if err != nil {
+			panic(err)
+		}
 	}
-	return cfg
+	return *c
 }
 
+// String creates a yaml represention of the Config struct
 func (c *Config) String() string {
-	cfgJson, err := json.Marshal(c)
+	cfgBytes, err := yaml.Marshal(c)
+	//cfgJson, err := json.Marshal(c)
 	if err != nil {
 		panic(err)
 	}
-	return string(cfgJson)
+	return string(cfgBytes)
 }
 
 // EmitEnv emits a string that can be evaluated by any shell
-func EmitEnv(v *VaultThinClient, exportStr string) string {
+func EmitEnv(v *VaultThinClient) string {
 	Emitted := make(map[string]interface{})
 
 	for _, p := range *v.Config.EmittedPaths {
@@ -66,7 +102,11 @@ func EmitEnv(v *VaultThinClient, exportStr string) string {
 
 	var emit string = ""
 	for key, value := range Emitted {
-		emit = fmt.Sprintf(exportStr, emit, key, value)
+		emit = fmt.Sprintf(
+			v.Config.EmitterFString,
+			emit,
+			key,
+			value)
 	}
 	return strings.TrimSpace(emit)
 }
@@ -95,7 +135,8 @@ func emit(v *VaultThinClient) {
 	if v.Config.SelfRenew {
 		go renew(v)
 	}
-	fmt.Fprintln(os.Stdout, EmitEnv(v, v.Config.EmitterFString))
+	fmt.Fprintln(
+		os.Stdout, EmitEnv(v))
 }
 
 func renew(v *VaultThinClient) {
@@ -108,15 +149,42 @@ func renderConfig(v *VaultThinClient) {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "Usage: k8s-bootstrap initial|identity|env|renew|config")
+	fmt.Fprintln(
+		os.Stderr,
+		`Usage: k8s-bootstrap initial|identity|env|renew|config
+
+    This helper utility can create and maintain an IAM identity for you. It
+    also creates a valid local kubernetes authentication.
+
+    Our dependencies are:
+    1. kubectl (create k8s api requests)
+    2. aws-iam-authenticator (authenticate to k8s via IAM)
+    3. vault login (to create IAM & store secrets in the cubbyhole)
+
+    initial: This subcommands fetches the proper KUBECONFIG file.
+
+    identity: creates an IAM user that expires in one week (if not renewed) and
+    saves it into the cubbyhole secret engine.
+
+    env: This command emits a list of 'export K=V' statements that can be
+    evaluated by any shell. They contain secrets for the aws-iam-authenticator.
+
+    renew: this commands attempts to renew the parent vault token and the lease
+    on the IAM user that is saved in its cubbyhole.		
+
+    config: render the config as evaluated by the process as yaml.
+		`)
 }
 
 func main() {
+	cfgPtr := flag.String("cfg",
+		ConfigFilePath,
+		"a path to the configuration file (if any; can be json and yaml)",
+	)
+	flag.Parse()
 	cfg := &Config{}
-	cfg.LoadFromFile(ConfigFilePath)
+	cfg.LoadFromFile(*cfgPtr)
 	v := NewClient(cfg)
-
-	fmt.Printf("%+v\n", cfg)
 
 	if len(os.Args) >= 2 {
 		switch os.Args[1] {
