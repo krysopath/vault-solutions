@@ -115,7 +115,7 @@ func newIdentity(v *VaultThinClient) {
 	for _, cubby := range *v.Config.Cubby {
 		v.Write(
 			cubby["dest"].(string),
-			*v.IAMIdentity(cubby["src"].(string)),
+			v.IAMIdentity(cubby["src"].(string)),
 		)
 	}
 }

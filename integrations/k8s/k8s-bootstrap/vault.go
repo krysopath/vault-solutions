@@ -34,12 +34,12 @@ func (c *VaultThinClient) GetCubby(cubbypath string) map[string]interface{} {
 }
 
 // IAMIdentity creates an IAM persona via vault middleman
-func (c *VaultThinClient) IAMIdentity(path string) *map[string]interface{} {
+func (c *VaultThinClient) IAMIdentity(path string) map[string]interface{} {
 	identity, err := c.Read(path)
 	if err != nil {
 		log.Fatalf("err: %s", err)
 	}
-	return &map[string]interface{}{
+	return map[string]interface{}{
 		"AWS_ACCESS_KEY_ID":     identity.Data["access_key"],
 		"AWS_SECRET_ACCESS_KEY": identity.Data["secret_key"],
 		"VAULT_IAM_LEASE":       identity.LeaseID,
