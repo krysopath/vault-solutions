@@ -51,7 +51,7 @@ type Config struct {
 	EmittedPaths   *[]string                 `json:"emit" yaml:"emit"`
 	EmitterFString string                    `json:"fstring" yaml:"fstring"`
 	Cubby          *[]map[string]interface{} `json:"cubby" yaml:"cubby"`
-	Files          map[string]interface{}    `json:"files" yaml:"files"`
+	Files          *map[string]interface{}   `json:"files" yaml:"files"`
 }
 
 // LoadFromFile loads a config from file and returns it as struct as well.
@@ -61,15 +61,12 @@ func (c *Config) LoadFromFile(fp string) Config {
 		if err != nil {
 			panic(err)
 		}
-
 		extension := filepath.Ext(fp)
 		switch extension {
 		case ".yaml":
 			yaml.Unmarshal(content, &c)
-
 		case ".json":
 			json.Unmarshal(content, &c)
-
 		}
 	} else {
 		err := yaml.Unmarshal([]byte(DefaultConfigYml), &c)
@@ -121,7 +118,7 @@ func newIdentity(v *VaultThinClient) {
 }
 
 func initial(v *VaultThinClient) {
-	for _, sourcePath := range v.Config.Files {
+	for _, sourcePath := range *v.Config.Files {
 		fmt.Fprintln(
 			os.Stdout,
 			strings.TrimSpace(
@@ -146,6 +143,16 @@ func renew(v *VaultThinClient) {
 
 func renderConfig(v *VaultThinClient) {
 	fmt.Fprintln(os.Stdout, v.Config)
+}
+
+func emitFile(v *VaultThinClient, name string) {
+	path, ok := (*v.Config.Files)[name]
+	if ok {
+		fmt.Fprintln(
+			os.Stdout,
+			strings.TrimSpace(*v.EmitFileAction(path.(string))),
+		)
+	}
 }
 
 func usage() {
@@ -176,6 +183,13 @@ func usage() {
 		`)
 }
 
+func tokencheck() {
+	if len(os.Getenv("VAULT_TOKEN")) == 0 {
+		fmt.Fprintf(os.Stderr, "warn: no VAULT_TOKEN\n")
+	}
+
+}
+
 func main() {
 	cfgPtr := flag.String("cfg",
 		ConfigFilePath,
@@ -185,7 +199,7 @@ func main() {
 	cfg := &Config{}
 	cfg.LoadFromFile(*cfgPtr)
 	v := NewClient(cfg)
-
+	tokencheck()
 	if len(os.Args) >= 2 {
 		switch os.Args[1] {
 		case "initial":
@@ -198,6 +212,8 @@ func main() {
 			renew(v)
 		case "config":
 			renderConfig(v)
+		case "file":
+			emitFile(v, os.Args[2])
 		default:
 			usage()
 			os.Exit(1)
