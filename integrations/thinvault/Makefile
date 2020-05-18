@@ -1,5 +1,4 @@
-deps:
+thinvault: go.mod go.sum *.go
 	go get
-
-thinvault: deps
 	go build -o thinvault -ldflags='-s -w' -trimpath
+

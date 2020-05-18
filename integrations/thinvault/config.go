@@ -19,14 +19,15 @@ func getUser() *user.User {
 	return usr
 }
 
-// User holds information we need in even in simple scenarios.
+// User holds information we need even in simple scenarios.
 var User = getUser()
 
-// ConfigFilePath holds a path to search for confguration instructions
+// ConfigFilePath holds a path to search for confguration
 var ConfigFilePath = filepath.Join(
-	User.HomeDir, ".secrets.yaml",
+	User.HomeDir, ".thinvault.yaml",
 )
 
+// DefaultConfigYml contains a yaml representation of the default configuration
 const DefaultConfigYml string = `---
 renew: true
 emit:
